@@ -55,6 +55,11 @@ final class GridProbes {
     /// replacement arrived does not remove the replacement's frame.
     private var owners: [String: UUID] = [:]
 
+    func reset() {
+        probes.removeAll()
+        owners.removeAll()
+    }
+
     func update(_ probe: Probe, owner: UUID) {
         let key = "\(probe.kind.rawValue):\(probe.name)"
         probes[key] = probe

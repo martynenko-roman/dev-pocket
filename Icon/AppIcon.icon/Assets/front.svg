@@ -1,3 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <rect x="262" y="372" width="500" height="380" rx="72" fill="#FFFFFF"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><path fill="white" d="M280 430h464v150c0 145-110 240-232 282-122-42-232-137-232-282V430zm72 62v88c0 98 65 172 160 213 95-41 160-115 160-213v-88H352z" fill-rule="evenodd"/><path fill="white" d="M292 425h440v80H292z"/></svg>

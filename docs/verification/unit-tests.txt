@@ -1,0 +1,27 @@
+Building for debugging...
+[1 / 12]
+[2 / 5] DevPocket-product
+[5 / 8] DevPocket-product
+[6 / 8] DevPocket-product
+[8 / 10] DevPocket-product
+Build complete! (2,60 secs)
+Test Suite 'All tests' started at 2026-11-11 18:41:21.501.
+Test Suite 'All tests' passed at 2026-11-11 18:41:21.504.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.003) seconds
+◇ Test run started.
+↳ Testing Library Version: 2403
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Test gestureScrollsAreUntouched() started.
+◇ Test clock(interval:expected:) started.
+◇ Test preferenceFormats() started.
+◇ Test case passing 2 arguments interval → 7199.2, expected → "2:00:00" to clock(interval:expected:) started.
+◇ Test case passing 2 arguments interval → -4.0, expected → "0:00" to clock(interval:expected:) started.
+◇ Test case passing 2 arguments interval → 0.0, expected → "0:00" to clock(interval:expected:) started.
+◇ Test case passing 2 arguments interval → 3599.0, expected → "59:59" to clock(interval:expected:) started.
+◇ Test case passing 2 arguments interval → 3600.0, expected → "1:00:00" to clock(interval:expected:) started.
+◇ Test case passing 2 arguments interval → 900.0, expected → "15:00" to clock(interval:expected:) started.
+◇ Test case passing 2 arguments interval → 0.1, expected → "0:01" to clock(interval:expected:) started.
+✔ Test preferenceFormats() passed after 0.001 seconds.
+✔ Test gestureScrollsAreUntouched() passed after 0.001 seconds.
+✔ Test clock(interval:expected:) with 7 test cases passed after 0.001 seconds.
+✔ Test run with 3 tests in 0 suites passed after 0.001 seconds.

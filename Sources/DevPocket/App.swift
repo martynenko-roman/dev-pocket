@@ -1,45 +1,30 @@
 import AppKit
-import SwiftData
 import SwiftUI
 
-// DevPocket
-//   DevPocket                      the app
-//   APP_STORE=<file> DevPocket     use another database (tests, experiments)
-//   APP_SNAPSHOT=<dir> DevPocket   save a PNG of every sidebar page and Settings tab in light and dark mode, then quit
-//   APP_SEED=1 DevPocket           fill an empty /tmp store with sample items (tools/snap.sh)
-//   DevPocket --selftest           run the self-test on a /tmp store and quit with 0 or 1 (tools/selftest.sh)
-//   APP_ACCENT=<id> DevPocket      run with another accent from Theme.all (UI/Theme.swift)
-//   APP_GRID=1 DevPocket           draw the 8 pt grid and the layout probes over the window
+enum AppMode {
+    static var isSelfTest: Bool {
+        CommandLine.arguments.contains("--selftest") || ProcessInfo.processInfo.environment["APP_SELFTEST"] == "1"
+    }
+    static var isReview: Bool { ProcessInfo.processInfo.environment["APP_REVIEW"] == "1" }
+    static var isHelper: Bool { ProcessInfo.processInfo.environment["APP_HELPER"] == "1" }
+    static var isSnapshot: Bool { ProcessInfo.processInfo.environment["APP_SNAPSHOT"] != nil }
+    static var isTesting: Bool { isSnapshot || isSelfTest || isHelper }
+}
 
 @main
 struct DevPocketApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
-    @State private var model = AppModel(container: Store.makeContainer())
+    @State private var model = AppModel.shared
 
     var body: some Scene {
-        Window("DevPocket", id: "main") {
-            ContentView()
-                .environment(model)
-                .themed()
-                .overlay { if GridOverlay.enabled { GridOverlay() } }
-                .frame(minWidth: 760, minHeight: 480)
+        MenuBarExtra("DevPocket", systemImage: model.awake.isOn ? "cup.and.saucer.fill" : "cup.and.saucer",
+                     isInserted: .constant(!AppMode.isTesting)) {
+            MenuBarPanel(model: model)
         }
-        .modelContainer(model.container)
-        .defaultSize(width: 1100, height: 720)
-        .windowToolbarStyle(.unified)
-        .commands {
-            SidebarCommands()
-            ToolbarCommands()
-            CommandGroup(replacing: .newItem) {
-                Button("New Item") { model.addItem() }
-                    .keyboardShortcut("n")
-            }
-        }
+        .menuBarExtraStyle(.window)
 
         Settings {
-            SettingsView()
-                .environment(model)
-                .themed()
+            SettingsView(model: model)
         }
         .windowResizability(.contentSize)
     }
@@ -47,40 +32,18 @@ struct DevPocketApp: App {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Started from a terminal, the process is not a foreground app yet.
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate()
+        NSApp.setActivationPolicy(AppMode.isSnapshot || AppMode.isHelper ? .regular : .accessory)
+        if AppMode.isHelper {
+            Task {
+                try? await Task.sleep(for: .seconds(30))
+                NSApp.terminate(nil)
+            }
+        } else if AppMode.isSnapshot { Snapshot.run(model: .shared) }
+        else if AppMode.isSelfTest { SelfTest.run() }
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
-
-    /// The self-test's result becomes the exit code, after a normal quit.
     func applicationWillTerminate(_ notification: Notification) {
-        if SelfTest.requested { exit(SelfTest.exitCode) }
-    }
-}
-
-/// Where the data lives: ~/Library/Application Support/DevPocket/DevPocket.store
-enum Store {
-    /// True when APP_STORE points somewhere else (tests, snapshots, seed data).
-    static var isOverridden: Bool {
-        !(ProcessInfo.processInfo.environment["APP_STORE"] ?? "").isEmpty
-    }
-
-    static var url: URL {
-        if let path = ProcessInfo.processInfo.environment["APP_STORE"], !path.isEmpty {
-            return URL(fileURLWithPath: path)
-        }
-        let dir = URL.applicationSupportDirectory.appending(path: "DevPocket", directoryHint: .isDirectory)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appending(path: "DevPocket.store")
-    }
-
-    static func makeContainer() -> ModelContainer {
-        do {
-            return try ModelContainer(for: Item.self, configurations: ModelConfiguration(url: url))
-        } catch {
-            fatalError("Could not open the database at \(url.path): \(error)")
-        }
+        AppModel.shared.shutdown()
+        if AppMode.isSelfTest { exit(SelfTest.exitCode) }
     }
 }

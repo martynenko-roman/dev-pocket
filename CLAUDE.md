@@ -1,52 +1,59 @@
 # DevPocket
 
-A native macOS app in SwiftUI. It runs on this Mac only, with a local
-SwiftData database and no server.
+Native macOS 26+ menu bar utility. `docs/SPEC.md` is the unchanged upstream
+Toolbox spec; the user renamed the app DevPocket. `docs/STORIES.md` tracks
+acceptance evidence. Preserve that scope, including the dropped URL scheme,
+App Intents, debug bridge, and icon picker.
 
-## Layout
+## Code
 
-- `Sources/DevPocket/` the app. `App.swift` has the window, menus, and the database location.
-- `Sources/DevPocketKit/` rules and data logic with no SwiftUI. Tests in `Tests/DevPocketKitTests/`.
-- `Package.swift` a Swift package. There is no Xcode project.
-- `build.sh` builds, signs, and installs `~/Applications/DevPocket.app`.
-- `Icon/AppIcon.icon` the app icon, an Icon Composer file (JSON plus SVG layers). `build.sh` compiles it with `tools/make_icon.sh`; `tools/icon_review.sh` renders every look into one PNG.
-- `docs/` the brief, the screen index, and the user stories, when they exist.
+- `DevPocketKit`: pure clock, duration, preference, and gesture rules.
+- App services own power assertions, system preferences, CoreAudio, Carbon
+  shortcuts, and the scroll event tap. `AppModel` assembles them.
+- Settings persist in UserDefaults. Power sessions live in memory. No database.
+- `MenuBarPanel` and `SettingsView` use the same services. `Toast` owns the
+  nonactivating, mouse-ignoring overlay.
+- Build uses Swift 6 with main-actor default isolation. C callbacks are
+  nonisolated and cross onto main only where the delivery queue is known.
 
-## Build and check
+## Verification
 
-- Build and install: `./build.sh`. Add `--open` to restart the app with the new build. The build shows warnings; fix them.
-- Unit tests: `swift test --scratch-path ~/Library/Developer/DevPocket/test-build`.
-- Self-test (the app's real functions on a /tmp store): `tools/selftest.sh`. Exit 0 when every check passes. Add a check for every story with logic in `SelfTest.swift`.
-- After every UI change, take snapshots with sample data and look at them: `tools/snap.sh`.
-  It writes `/tmp/DevPocket-shots/<page>-light.png` and `-dark.png` for every sidebar page, and `settings-<tab>-light.png` and `-dark.png` for every Settings tab, then quits. `APP_SNAPSHOT_PAGES=all,settings tools/snap.sh` limits the pages.
-  For a panel, sheet, or popover, add a capture to `Snapshot.swift` like the Settings loop.
-- Snapshots, seed data, and the self-test refuse to run without `APP_STORE` in /tmp.
-- Never test against the real database in `~/Library/Application Support/DevPocket/`.
-- Then check the grid: `tools/grid-lint.sh` and `swift tools/check-layout.swift /tmp/DevPocket-shots/*-layout.json`. Both print PASS.
-- A change is done when the build has no errors, the grid checks pass, and you looked at the light and dark snapshots.
+`./build.sh --debug` builds, compiles the icon, signs, and packages into
+`dist/DevPocket.app`. The default scratch directory is `/private/tmp`;
+`APP_BUILD_ROOT` and `APP_INSTALL_ROOT` override destinations.
 
-## Design rules
+`tools/test.sh` runs Swift Testing. `tools/selftest.sh` runs the real API
+checks; launch through the desktop if the shell aborts in `_RegisterApplication`.
+`tools/make-qa.sh` creates isolated selftest, helper, snapshots, and review
+app identities under dist. Launch those with Finder. The native self-test
+writes `/private/tmp/DevPocket-native-selftest.log`; the helper is disposable
+and is the only app a self-test may terminate.
 
-- Use Apple's controls and system styles. Only the accent color is custom: `UI/Theme.swift` (`ThemeStore.defaultID`). People change it, and light or dark mode, in Settings > Appearance.
-- Views use `.tint`, `Palette.accent`, `Palette.accentText` (accent-colored text), and `Palette.onAccent` (text on an accent fill). Never hard-code colors, radii, or durations in views.
-- Compare accents: add `APP_ACCENT=<id>` to the snapshot command.
-- Spacing comes from `Space` in `UI/Grid.swift`, on a 4 pt grid. Mark custom pages and cards with `.gridArea` and `.gridProbe`.
-- Windows open calm: `.noInitialFocus()` on every window and sheet (no focus ring or selected text on open), `.fitsContent()` on sheets and Settings tabs (no scroll bar with nothing to scroll). System scroll bars. Both in `UI/WindowBehavior.swift`.
-- Settings: one tab per topic in `SettingsView.swift`, one grouped Form per tab. Add a case to `SettingsTab` for a new tab.
-- Window chrome (title bar, toolbar, sidebar, menus, sheets) stays system. Buttons use system styles, like `.borderedProminent`.
-- Colors: `.primary`, `.secondary`, `.tint`, and system colors. Never fixed grays or white for text.
-- Every action has a menu bar item and a keyboard shortcut.
-- `Label` for icon and text pairs. SF Symbols for icons.
-- `ContentUnavailableView` for empty states.
-- Liquid Glass belongs to floating controls only, never to content.
+`tools/snap.sh` requests window-only PNGs. Screen Recording may be required.
+`DevPocket-review.app` exposes the actual views for native visual inspection;
+its preferences are isolated, system toggles/audio use fixtures, and its
+Keep Awake button still holds a real assertion. Review captures prove layout,
+not successful changes to Finder, Dock, sound hardware, or permission grants.
 
-## Skills
+After UI changes, check both appearances, run `tools/grid-lint.sh`, and run
+`swift tools/check-layout.swift /private/tmp/DevPocket-shots/*-layout.json`.
+Only mark stories done when every acceptance line has evidence. Keep manual
+permission and hardware checks pending when they have not run.
 
-The bama plugin has a skill for each step: `mac-design` (design rules),
-`design-system` (accent and tokens), `layout-grid`, `ux-design`,
-`swift-swiftui`, `os-integrations`, `performance`, `build-and-verify`,
-`test-mac-app`, `app-icon`, `user-stories`, and `improve-loop`. Use them.
+## Design
 
-## Git
+Design rules: `design/DESIGN-SYSTEM.md`. Use its tokens and the system accent.
+Forms own their layout; custom panel groups use grid probes. Icon source is
+`Icon/AppIcon.icon`, with original SVG layers and no SF Symbols.
 
-- Commit after each working change, with a message that says what the user can now do.
+## System integration
+
+Keep Awake prevents idle display sleep, not lid-close sleep. Every start
+releases the previous assertion. Finder/Dock restarts and AppleScript run
+away from the main thread. Refresh preferences before reads; busy controls
+ignore duplicate clicks. CoreAudio listeners deliver on main. Read every
+scroll representation before negating any field; continuous gestures pass
+through. Request permissions only at use; preserve exact recovery wording.
+
+Commit working changes with their verification evidence. Keep build outputs
+and QA copies out of Git.

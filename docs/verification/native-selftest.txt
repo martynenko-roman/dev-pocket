@@ -1,0 +1,33 @@
+PASS starts off
+PASS creates real display-sleep assertion
+PASS exactly one named assertion
+PASS restarting keeps exactly one assertion
+PASS stop releases assertion
+PASS timed session expires
+PASS stale timeline date never exceeds session length
+PASS changing duration restarts countdown
+PASS duration restart still holds one assertion
+PASS duration persists
+PASS app session watches the selected PID
+Helper finishedLaunching=true terminated=true awake=false
+PASS app termination releases assertion
+PASS app termination names the app in feedback
+PASS clock rounds up
+PASS missing desktop preference defaults on
+PASS symbol eye exists
+PASS symbol desktopcomputer exists
+PASS symbol moon.fill exists
+PASS symbol dock.rectangle exists
+PASS reads live preferences without changing them
+PASS audio observers run without a concurrency trap
+PASS audio default belongs to output list or is absent
+PASS wheel reverses all six deltas
+PASS gesture deltas remain unchanged
+PASS Carbon registers shortcut without Accessibility
+PASS duplicate shortcut reports conflict
+PASS clearing unregisters shortcut
+PASS menu bar only Info.plist
+PASS Automation usage string exists
+PASS login setting reflects actual service
+PASS all power assertions released
+SELFTEST PASS 31/31 checks

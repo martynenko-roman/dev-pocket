@@ -14,4 +14,6 @@
 <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
 <key>NSHighResolutionCapable</key><true/>
 <key>NSPrincipalClass</key><string>NSApplication</string>
+<key>LSUIElement</key><true/>
+<key>NSAppleEventsUsageDescription</key><string>DevPocket controls System Events to switch your Mac between light and dark mode.</string>
 </dict></plist>

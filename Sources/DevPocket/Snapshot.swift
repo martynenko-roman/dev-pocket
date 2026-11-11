@@ -1,102 +1,108 @@
 import AppKit
-import IOKit.pwr_mgt
 import SwiftUI
 
-/// Screenshot mode for agents.
-///   APP_STORE=/tmp/test.store APP_SNAPSHOT=/tmp/shots ~/Applications/DevPocket.app/Contents/MacOS/DevPocket
-/// writes <page>-light.png and <page>-dark.png for every sidebar page, and
-/// settings-<tab>-light.png and settings-<tab>-dark.png for every Settings tab, then quits.
-/// Each PNG gets a <page>-<mode>-layout.json with the grid probes (tools/check-layout.swift).
-/// APP_SNAPSHOT_PAGES=all,starred limits the pages. Add "settings" to include Settings.
-/// Add APP_ACCENT=<id> to see the pages in another accent.
 enum Snapshot {
-    static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {
-        let env = ProcessInfo.processInfo.environment
-        guard let dir = env["APP_SNAPSHOT"], !dir.isEmpty else { return }
-        // Snapshots never run against the real database.
-        guard Store.isOverridden else {
-            print("SNAPSHOT refused: set APP_STORE to a file in /tmp")
+    private static var window: NSWindow?
+    static func run(model: AppModel) {
+        if ProcessInfo.processInfo.environment["APP_REVIEW"] == "1" {
+            NSApp.appearance = NSAppearance(named: .aqua)
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: 760),
+                                  styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+            window.title = "DevPocket Visual Review"
+            window.isReleasedWhenClosed = false
+            window.contentView = NSHostingView(rootView: VisualReview(model: model))
+            self.window = window
+            window.center()
+            NSApp.activate()
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+        guard let path = ProcessInfo.processInfo.environment["APP_SNAPSHOT"],
+              URL(fileURLWithPath: path).standardizedFileURL.path.hasPrefix("/private/tmp/") || path.hasPrefix("/tmp/") else {
             NSApp.terminate(nil)
             return
         }
-        let only = env["APP_SNAPSHOT_PAGES"].map { Set($0.split(separator: ",").map(String.init)) }
         Task {
-            // A sleeping display gives screencapture nothing. Declaring user
-            // activity wakes it; the assertion keeps it on until the run quits.
-            var activity: IOPMAssertionID = 0
-            IOPMAssertionDeclareUserActivity("Snapshots" as CFString, kIOPMUserActiveLocal, &activity)
-            var awake: IOPMAssertionID = 0
-            IOPMAssertionCreateWithName(kIOPMAssertionTypePreventUserIdleDisplaySleep as CFString,
-                                        IOPMAssertionLevel(kIOPMAssertionLevelOn), "Snapshots" as CFString, &awake)
-            try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
-            try? await Task.sleep(for: .seconds(1.5))
+            try? FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true)
             for mode in ["light", "dark"] {
                 NSApp.appearance = NSAppearance(named: mode == "light" ? .aqua : .darkAqua)
-                for page in SidebarItem.allCases where only?.contains(page.rawValue) ?? true {
-                    model.sidebar = page
-                    try? await Task.sleep(for: .seconds(0.8))
-                    capture(to: "\(dir)/\(page.rawValue)-\(mode).png")
-                }
+                await show(MenuBarPanel(model: model), name: "menu-\(mode)", path: path,
+                           size: NSSize(width: Layout.panelWidth, height: 200))
+                // Run a real timed assertion for the countdown state, then release it.
+                model.awake.start(secondsOverride: 899)
+                await show(MenuBarPanel(model: model), name: "menu-awake-\(mode)", path: path,
+                           size: NSSize(width: Layout.panelWidth, height: 200))
+                model.awake.stop(announce: false)
+                await show(GeneralSettings(model: model).frame(width: Layout.settingsWidth),
+                           name: "settings-general-\(mode)", path: path,
+                           size: NSSize(width: Layout.settingsWidth, height: 640))
+                await show(ShortcutSettings(center: model.shortcuts).frame(width: Layout.settingsWidth),
+                           name: "settings-shortcuts-\(mode)", path: path,
+                           size: NSSize(width: Layout.settingsWidth, height: 320))
+                await show(ToastView(text: "Keep Awake on"), name: "toast-\(mode)", path: path,
+                           size: NSSize(width: Layout.toastWidth, height: Layout.toastHeight))
             }
-            if only == nil || only?.contains("settings") == true {
-                let main = NSApp.windows.first { $0.canBecomeMain && !$0.isSheet }
-                openSettings()
-                try? await Task.sleep(for: .seconds(1))
-                for mode in ["light", "dark"] {
-                    NSApp.appearance = NSAppearance(named: mode == "light" ? .aqua : .darkAqua)
-                    for tab in SettingsTab.allCases {
-                        model.settingsTab = tab
-                        try? await Task.sleep(for: .seconds(0.8))
-                        let settings = NSApp.windows.first { $0.isVisible && $0 !== main && !$0.isSheet }
-                        capture(to: "\(dir)/settings-\(tab.rawValue)-\(mode).png", window: settings)
-                    }
-                }
-            }
-            print("SNAPSHOT done \(dir)")
-            // An open sheet refuses terminate, and the run would wait forever.
-            for window in NSApp.windows { if let sheet = window.attachedSheet { window.endSheet(sheet) } }
+            print("SNAPSHOT done \(path)")
+            window?.close()
             NSApp.terminate(nil)
         }
     }
 
-    /// Captures the real window with screencapture, so glass, sidebars, and
-    /// materials look exactly as on screen. That needs Screen Recording
-    /// permission for the app that started this one (your terminal, or Claude).
-    /// Without it, falls back to drawing the view hierarchy, which leaves
-    /// sidebars and glass blank.
-    private static func capture(to path: String, window: NSWindow? = nil) {
-        // Another app can hide this one while snapshots run (computer use hides
-        // apps it does not control). Hidden windows cannot be captured.
-        if NSApp.isHidden { NSApp.unhideWithoutActivation() }
-        guard let window = window ?? NSApp.windows.first(where: { $0.canBecomeMain && !$0.isSheet }) else {
-            print("SNAPSHOT no window")
-            return
-        }
-        // Active, like a window someone is using: real accent colors and focus rings.
+    private static func show<V: View>(_ view: V, name: String, path: String, size: NSSize) async {
+        window?.contentView = nil
+        window?.close()
+        GridProbes.shared.reset()
+        let window = NSWindow(contentRect: NSRect(origin: .zero, size: size),
+                              styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.title = "DevPocket — \(name)"
+        window.contentView = NSHostingView(rootView: view.noInitialFocus())
+        window.center()
+        self.window = window
+        NSApp.unhideWithoutActivation()
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
-        let size = window.contentView?.bounds.size ?? .zero
-        GridProbes.shared.write(to: path.replacingOccurrences(of: ".png", with: "-layout.json"), window: size)
-        try? FileManager.default.removeItem(atPath: path)
-        // The first capture of a run sometimes misses the window. Try three times.
-        for _ in 1...3 {
-            let shot = Process()
-            shot.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-            shot.arguments = ["-x", "-o", "-l", String(window.windowNumber), path]
-            try? shot.run()
-            shot.waitUntilExit()
-            if FileManager.default.fileExists(atPath: path) {
-                print("SNAPSHOT \(path)")
-                return
+        try? await Task.sleep(for: .milliseconds(900))
+        GridProbes.shared.write(to: "\(path)/\(name)-layout.json", window: window.contentLayoutRect.size)
+        let capture = Process()
+        capture.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+        capture.arguments = ["-x", "-o", "-l", String(window.windowNumber), "\(path)/\(name).png"]
+        try? capture.run()
+        capture.waitUntilExit()
+        if capture.terminationStatus == 0 { print("SNAPSHOT \(path)/\(name).png") }
+        else { print("SNAPSHOT FAILED \(name): requires an active display and Screen Recording access") }
+    }
+}
+
+private struct VisualReview: View {
+    let model: AppModel
+    @State private var surface = "Menu"
+    @State private var dark = false
+
+    var body: some View {
+        VStack(spacing: Space.xl) {
+            HStack {
+                Picker("Surface", selection: $surface) {
+                    ForEach(["Menu", "General", "Shortcuts", "Toast"], id: \.self) { Text($0) }
+                }
+                .onChange(of: surface) { _, _ in model.awake.stop(announce: false) }
+                Toggle("Dark preview", isOn: $dark)
+                    .onChange(of: dark) { _, value in
+                        NSApp.appearance = NSAppearance(named: value ? .darkAqua : .aqua)
+                    }
             }
-            Thread.sleep(forTimeInterval: 0.5)
+            .padding(.horizontal, Space.margin)
+            Divider()
+            switch surface {
+            case "General": GeneralSettings(model: model).frame(width: Layout.settingsWidth)
+            case "Shortcuts": ShortcutSettings(center: model.shortcuts).frame(width: Layout.settingsWidth)
+            case "Toast": ToastView(text: "Keep Awake on")
+            default: MenuBarPanel(model: model)
+            }
+            Spacer(minLength: 0)
         }
-        guard let view = window.contentView?.superview ?? window.contentView,
-              let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
-        view.cacheDisplay(in: view.bounds, to: rep)
-        if let data = rep.representation(using: .png, properties: [:]) {
-            try? data.write(to: URL(fileURLWithPath: path))
-            print("SNAPSHOT \(path) (fallback: no Screen Recording permission, sidebars and glass are blank)")
-        }
+        .padding(.top, Space.margin)
+        .frame(minWidth: 640, minHeight: 760)
+        .noInitialFocus()
     }
 }

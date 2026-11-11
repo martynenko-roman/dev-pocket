@@ -1,35 +1,46 @@
 # DevPocket
 
-A native macOS menu bar utility, based on the BAMA Toolbox specification.
+A native macOS 26+ menu bar utility based on the BAMA Toolbox specification.
+Keep the Mac awake, flip everyday system settings, select sound devices, and
+reverse physical mouse wheels without changing trackpad gestures.
 
-## Project status
+## Status
 
-The BAMA brief and backlog have been imported and the SwiftUI template has
-been scaffolded. App features are not implemented yet. The current source
-still contains the template's sample item interface.
-
-- [Brief](docs/BRIEF.md): source brief, with the requested DevPocket name.
-- [Stories](docs/STORIES.md): all 11 source stories, with the requested name.
-- [Source specification](docs/SPEC.md): complete, unchanged upstream spec.
-- [Build status](docs/BUILD-STATUS.md): current verification blockers.
-
-Bundle identifier: `com.romanmartynenko.devpocket`.
-
-## BAMA workflow
-
-Completed: spec import and scaffold creation.
-
-Next: resolve the developer toolchain, verify the template build, then use
-`mac-design`, `design-system`, and `app-icon` before implementing the M1
-stories through `improve-loop`.
+The implementation compiles. Three unit tests and 31 native API self-test
+checks pass; native light/dark views have been reviewed. Final icon packaging
+and manual permission/hardware acceptance checks remain pending. See
+[build status](docs/BUILD-STATUS.md) for exact evidence and current limitations.
 
 ## Build
 
-Requires macOS 26+, a consistent Swift 6.2+ toolchain, and full Xcode for
-Icon Composer and asset compilation. With those installed:
+With full Xcode selected and its setup complete:
 
 ```sh
-./build.sh --open
+./build.sh
 ```
+
+Output: `dist/DevPocket.app`. The default scratch directory is under
+`/private/tmp`. Set `APP_INSTALL_ROOT` to change the app destination.
+Quit any older running copy before opening a new build.
+
+The icon compiler currently fails in the restricted runner despite the
+source document opening in Icon Composer. The status document records an
+ordinary-Terminal comparison to finish that diagnosis.
+
+## Verify
+
+```sh
+tools/test.sh
+tools/make-qa.sh
+```
+
+Launch `dist/DevPocket-selftest.app` from Finder for real API checks. It writes
+`/private/tmp/DevPocket-native-selftest.log` and uses a disposable helper app.
+`DevPocket-review.app` shows the real views with isolated preferences and
+system-setting/audio fixtures. Keep Awake there still uses a real assertion.
+`tools/snap.sh` exports window-only screenshots when capture access permits it.
+
+Bundle identifier: `com.romanmartynenko.devpocket`.
+[Brief](docs/BRIEF.md) · [Stories](docs/STORIES.md) · [Specification](docs/SPEC.md)
 
 Source: https://github.com/daveebbelaar/bama/blob/main/specs/toolbox.md
