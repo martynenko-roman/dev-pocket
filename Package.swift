@@ -2,17 +2,17 @@
 import PackageDescription
 
 let package = Package(
-    name: "Toolbox",
+    name: "DevPocket",
     platforms: [.macOS(.v26)],
     targets: [
         // Rules and data logic with no SwiftUI, so tests run without the app.
-        .target(name: "ToolboxKit"),
+        .target(name: "DevPocketKit"),
         .executableTarget(
-            name: "Toolbox",
-            dependencies: ["ToolboxKit"],
+            name: "DevPocket",
+            dependencies: ["DevPocketKit"],
             // App code runs on the main thread unless you say otherwise.
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
-        .testTarget(name: "ToolboxKitTests", dependencies: ["ToolboxKit"]),
+        .testTarget(name: "DevPocketKitTests", dependencies: ["DevPocketKit"]),
     ]
 )

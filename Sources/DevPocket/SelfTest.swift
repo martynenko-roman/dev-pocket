@@ -1,10 +1,10 @@
 import AppKit
 import SwiftData
-import ToolboxKit
+import DevPocketKit
 
 /// Self-test for agents: runs the app's real functions on a test store,
 /// prints PASS or FAIL per check, and quits with exit code 0 or 1.
-///   APP_STORE=/tmp/Toolbox-self.store ~/Applications/Toolbox.app/Contents/MacOS/Toolbox --selftest
+///   APP_STORE=/tmp/DevPocket-self.store ~/Applications/DevPocket.app/Contents/MacOS/DevPocket --selftest
 /// (tools/selftest.sh does this.) Add a check for every story with logic.
 @MainActor
 enum SelfTest {

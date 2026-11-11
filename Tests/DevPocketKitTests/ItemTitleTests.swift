@@ -1,5 +1,5 @@
 import Testing
-@testable import ToolboxKit
+@testable import DevPocketKit
 
 @Test("Clean titles", arguments: [
     ("Buy milk", "Buy milk"),

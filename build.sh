@@ -1,6 +1,6 @@
 #!/bin/zsh
-# Builds Toolbox and installs it to ~/Applications/Toolbox.app.
-# Build products live in ~/Library/Developer/Toolbox, outside the repo
+# Builds DevPocket and installs it to ~/Applications/DevPocket.app.
+# Build products live in ~/Library/Developer/DevPocket, outside the repo
 # (and outside Dropbox or iCloud, which would try to sync them).
 #
 # Usage: ./build.sh            release build, install
@@ -8,7 +8,7 @@
 #        ./build.sh --open     install, then quit the running copy and open the new one
 set -euo pipefail
 here=${0:A:h}
-name="Toolbox"
+name="DevPocket"
 scratch="$HOME/Library/Developer/$name/build"
 config=release
 [[ " $* " == *" --debug "* ]] && config=debug

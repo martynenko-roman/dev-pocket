@@ -2,22 +2,22 @@ import AppKit
 import SwiftData
 import SwiftUI
 
-// Toolbox
-//   Toolbox                      the app
-//   APP_STORE=<file> Toolbox     use another database (tests, experiments)
-//   APP_SNAPSHOT=<dir> Toolbox   save a PNG of every sidebar page and Settings tab in light and dark mode, then quit
-//   APP_SEED=1 Toolbox           fill an empty /tmp store with sample items (tools/snap.sh)
-//   Toolbox --selftest           run the self-test on a /tmp store and quit with 0 or 1 (tools/selftest.sh)
-//   APP_ACCENT=<id> Toolbox      run with another accent from Theme.all (UI/Theme.swift)
-//   APP_GRID=1 Toolbox           draw the 8 pt grid and the layout probes over the window
+// DevPocket
+//   DevPocket                      the app
+//   APP_STORE=<file> DevPocket     use another database (tests, experiments)
+//   APP_SNAPSHOT=<dir> DevPocket   save a PNG of every sidebar page and Settings tab in light and dark mode, then quit
+//   APP_SEED=1 DevPocket           fill an empty /tmp store with sample items (tools/snap.sh)
+//   DevPocket --selftest           run the self-test on a /tmp store and quit with 0 or 1 (tools/selftest.sh)
+//   APP_ACCENT=<id> DevPocket      run with another accent from Theme.all (UI/Theme.swift)
+//   APP_GRID=1 DevPocket           draw the 8 pt grid and the layout probes over the window
 
 @main
-struct ToolboxApp: App {
+struct DevPocketApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var model = AppModel(container: Store.makeContainer())
 
     var body: some Scene {
-        Window("Toolbox", id: "main") {
+        Window("DevPocket", id: "main") {
             ContentView()
                 .environment(model)
                 .themed()
@@ -60,7 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-/// Where the data lives: ~/Library/Application Support/Toolbox/Toolbox.store
+/// Where the data lives: ~/Library/Application Support/DevPocket/DevPocket.store
 enum Store {
     /// True when APP_STORE points somewhere else (tests, snapshots, seed data).
     static var isOverridden: Bool {
@@ -71,9 +71,9 @@ enum Store {
         if let path = ProcessInfo.processInfo.environment["APP_STORE"], !path.isEmpty {
             return URL(fileURLWithPath: path)
         }
-        let dir = URL.applicationSupportDirectory.appending(path: "Toolbox", directoryHint: .isDirectory)
+        let dir = URL.applicationSupportDirectory.appending(path: "DevPocket", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appending(path: "Toolbox.store")
+        return dir.appending(path: "DevPocket.store")
     }
 
     static func makeContainer() -> ModelContainer {

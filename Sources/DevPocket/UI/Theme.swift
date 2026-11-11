@@ -5,7 +5,7 @@ import SwiftUI
 /// One accent color in three shades. Everything else is Apple's look.
 /// People pick the accent in Settings > Appearance (AppearanceSettings.swift).
 /// Light and dark mode follow the Mac: there is no app-specific mode setting.
-///   APP_ACCENT=mint Toolbox     run with another accent, to compare
+///   APP_ACCENT=mint DevPocket     run with another accent, to compare
 struct Theme: Identifiable, Hashable {
     struct Shades: Hashable {
         let light: UInt32

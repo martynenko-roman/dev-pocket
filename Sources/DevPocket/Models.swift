@@ -1,6 +1,6 @@
 import Foundation
 import SwiftData
-import ToolboxKit
+import DevPocketKit
 
 @Model
 final class Item {
