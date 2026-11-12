@@ -1,15 +1,8 @@
 # DevPocket
 
-A native macOS 26+ menu bar utility based on the BAMA Toolbox specification.
+A native macOS 26+ menu bar utility.
 Keep the Mac awake, flip everyday system settings, select sound devices, and
 reverse physical mouse wheels without changing trackpad gestures.
-
-## Status
-
-The implementation compiles. Three unit tests and 31 native API self-test
-checks pass; native light/dark views have been reviewed. Final icon packaging
-and manual permission/hardware acceptance checks remain pending. See
-[build status](docs/BUILD-STATUS.md) for exact evidence and current limitations.
 
 ## Build
 
@@ -42,5 +35,3 @@ system-setting/audio fixtures. Keep Awake there still uses a real assertion.
 
 Bundle identifier: `com.romanmartynenko.devpocket`.
 [Brief](docs/BRIEF.md) · [Stories](docs/STORIES.md) · [Specification](docs/SPEC.md)
-
-Source: https://github.com/daveebbelaar/bama/blob/main/specs/toolbox.md
